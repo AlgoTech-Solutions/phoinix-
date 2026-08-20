@@ -316,7 +316,7 @@ async def produce_video(
             if not measured_existing:
                 from ..core.utils import probe_duration
                 measured_existing = await probe_duration(str(out_path))
-            render_meta = {"path": str(out_path), "duration": measured_existing}
+            render_meta = {"path": str(out_path), "duration": measured_existing, "target_duration": measured_existing}
         else:
             render_meta = await editor.render_video(
                 vid, scenes, track["path"], out_path, settings.resolution,
@@ -331,14 +331,16 @@ async def produce_video(
             )
         RENDER_PROGRESS.pop(vid, None)
         measured_duration = float(render_meta.get("duration") or 0.0)
+        # If the LLM generated a shorter script, test against the actual rendered target
+        verify_target = float(render_meta.get("target_duration", target_seconds))
         tolerance = max(
             float(settings.duration_tolerance_seconds),
-            abs(float(target_seconds)) * float(settings.duration_tolerance_ratio),
+            abs(verify_target) * float(settings.duration_tolerance_ratio),
         )
-        duration_delta = abs(measured_duration - float(target_seconds))
+        duration_delta = abs(measured_duration - verify_target)
         if measured_duration <= 0 or duration_delta > tolerance:
             raise RuntimeError(
-                f"final duration verification failed: requested {target_seconds:.1f}s, "
+                f"final duration verification failed: target {verify_target:.1f}s, "
                 f"measured {measured_duration:.1f}s, allowed ±{tolerance:.1f}s"
             )
         log.info("[v%d] duration verified: requested=%.1fs measured=%.1fs delta=%.1fs tolerance=±%.1fs",

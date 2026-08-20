@@ -549,6 +549,7 @@ async def render_video(
     return {
         "path": str(out_path),
         "duration": measured_duration,
+        "target_duration": T,
         "scenes": len(scenes),
         "captions": str(captions_path),
         "resolution": f"{w}x{h}",
